@@ -1,0 +1,127 @@
+cmd uchun dotnet buyruqlar:
+//Birinchi package lani o'rnatamiz consol dan
+
+dotnet add package Microsoft.EntityFrameworkCore
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Microsoft.EntityFrameworkCore.Tools
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+
+dotnet tool install --global dotnet-ef
+
+//Baza va jadvallarni yaratish(MY_DB class yaratgandan keyin)
+
+dotnet ef migrations add DastlabkiOzgarish
+dotnet ef database update
+
+//Agar bazada nimanidir o'zgartirmoqchi bolsak MY_DB faylini o'zgartiramiz
+// yana quyidagi buyruqlarni chaqiramiz:
+
+dotnet ef migrations add DastlabkiOzgarish
+dotnet ef database update
+
+//Dasturni ishga tushirish uchun
+dotnet build
+dotnet run
+
+
+---------------------------------------------------------------
+
+1.StartUp.cs:
+
+	public void ConfigureServices(IServiceCollection services)
+	{
+		services.AddDbContext<MY_DB>(d => {d.UseNpgsql(Configuration.GetConnectionString("MyConnectionString"));
+		});
+		//UseNpgsql for Postgres
+		//UseSqlServer for MSSQL
+		//UseMySql fot MySql
+		............
+	}
+	
+	------------------------------------
+	!!!!!!!!!!!MyConnectionString!!!!!!!!!!!!!
+	
+	appsettings.json
+	
+	"ConnectionStrings": {
+    "MyConnectionString": "Host=localhost;port=5432;Database=my_db;Username=postgres;Password=1"
+	//"MyConnectionString": "Host=(localdb)\mssqllocaldb;Database=my_db;Username=sa;Password=1"
+	}
+
+-------------------------------------------------------------------------
+	
+2. MY_DB.cs:
+	//DbContext clasiga Inherit bo'ladi
+	public class MY_DB: DbContext
+    {
+		//Bu class 'dotnet ef database update' buyrugidan keyin 
+		//MY_DB databaseni va ichida Students jadvalini yaratadi.
+		
+        public MY_DB(DbContextOptions<MY_DB> options):base(options){}
+		
+		//Boshqa classlarda ushbu Property orqali table ga o'zgarish kiritiladi
+        public DbSet<Student> Students { get; set; }
+		
+		hohlagancha jadvalni qo'shish mumkin
+        //public DbSet<Group> Groups { get; set; }
+		......................
+    }
+	//Bu DbSet<Student> ni ichida
+	public class Student
+    {
+		//[Key] -- bazada 'not null primary key' degani
+        [Key]
+        public Guid Id { get; set; }
+		
+		//[Required]-- bazada 'not null' degani 
+        [Required]
+        public string Name { get; set; }
+
+        public string Phone { get; set; }
+    }
+
+------------------------------------------------------------------
+	
+3. HomeController.cs da database dagi tablelarni o'zgartiramiz:
+
+	public class HomeController : ControllerBase
+    {
+		//MY_DB clasidan namuna olib uni ishga tushiramiz
+        private MY_DB db;
+        public HomeController(MY_DB db)
+        {
+            this.db = db;
+        }		
+		
+		
+		//Sinov uchun metod
+        public void SomeTestMethod(int id, Student student)
+        {
+			//barcha talabalar uchun(ToList)
+            IEnumerable<Student> _students=db.Students.ToList();
+			
+			//Bitta talaba uchun
+			Student _student=db.Students.Find(id);			
+			
+			//Bitta talabani qo'shish(Add)
+			db.Students.Add(student);
+            db.SaveChanges();	
+
+			//Talaba ma'lumotlarini yangilaydi(Update)
+			db.Students.Update(student);
+            db.SaveChanges();
+			
+			//Talabani o'chirish(Remove)
+			var student = db.Students.Find(id);
+            db.Students.Remove(student);
+            db.SaveChanges();
+        }
+	}
+	
+---------------------------------------------------------------
+	
+	
+	
+	
+	
+	
